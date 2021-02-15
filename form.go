@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gofrs/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 type TypeName string
@@ -12,6 +13,14 @@ var (
 	TypeBool   TypeName = "bool"
 	TypeString TypeName = "string"
 	TypeUUID   TypeName = "uuid"
+)
+
+type MissingErrorOption string
+
+var (
+	MissingErrorNone MissingErrorOption = ""
+	MissingErrorWarn MissingErrorOption = "warn"
+	MissingErrorFail MissingErrorOption = "fail"
 )
 
 type Validator func(interface{}) error
@@ -44,9 +53,10 @@ func GetGroup(def Definition, group string, m map[string]interface{}) map[string
 }
 
 type ApplyOptions struct {
-	// If true, returns an error if the field is not in the permittedFields list,
-	// otherwise it just removes that field silently
-	ErrorOnPermission bool
+	// Specifies how to handle when a field is given that isn't in the list.
+	// Useful to use 'warn' mode when running in debug mode, to see if you have
+	// extra fields that aren't being used.
+	ErrorOnPermission MissingErrorOption
 }
 
 func inList(list []string, str string) bool {
@@ -74,10 +84,13 @@ func ApplyDefinition(
 	// the type we expect
 	errors := make(map[string][]error)
 	for k, v := range m {
-
 		if !inList(permittedFields, k) {
-			if options.ErrorOnPermission {
-				errors[k] = append(errors[k], fmt.Errorf("Using field %s not permitted", k))
+			msg := fmt.Sprintf("Using field %s not permitted", k)
+			switch options.ErrorOnPermission {
+			case MissingErrorWarn:
+				log.Warningf(msg)
+			case MissingErrorFail:
+				errors[k] = append(errors[k], fmt.Errorf(msg))
 			}
 
 			// Skip this field, as it's not permitted
