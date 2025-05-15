@@ -2,6 +2,7 @@ package forms
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gofrs/uuid"
 	log "github.com/sirupsen/logrus"
@@ -140,7 +141,7 @@ func ensureBool(s interface{}) (interface{}, error) {
 		return s, nil
 	case string:
 		var b bool
-		str := s.(string)
+		str := strings.TrimSpace(s.(string))
 		switch str {
 		case "true", "on":
 			b = true
@@ -157,8 +158,13 @@ func ensureBool(s interface{}) (interface{}, error) {
 }
 
 func ensureString(s interface{}) (interface{}, error) {
-	str := fmt.Sprintf("%v", s)
-	return str, nil
+	switch v := s.(type) {
+	case string:
+		return strings.TrimSpace(fmt.Sprintf("%v", s)), nil
+	default:
+		return nil, fmt.Errorf("Cannot convert type %T to string", v)
+
+	}
 }
 
 func ensureUUID(s interface{}) (interface{}, error) {
@@ -166,7 +172,7 @@ func ensureUUID(s interface{}) (interface{}, error) {
 	case uuid.UUID:
 		return s, nil
 	case string:
-		id, err := uuid.FromString(s.(string))
+		id, err := uuid.FromString(strings.TrimSpace(s.(string)))
 		return id, err
 	default:
 		return nil, fmt.Errorf("Cannot convert type %T to uuid.UUID", v)
