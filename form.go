@@ -2,6 +2,7 @@ package forms
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gofrs/uuid"
 	log "github.com/sirupsen/logrus"
@@ -30,6 +31,7 @@ type FieldDefinition struct {
 	Group       string // Group is used when we want to break fields out into separate groups.  E.g., if creating or updating involves modifying multiple tables
 	FieldType   TypeName
 	Validations []Validator
+	DisableTrim bool
 }
 
 type Definition struct {
@@ -106,11 +108,11 @@ func ApplyDefinition(
 
 		switch fieldDef.FieldType {
 		case TypeBool:
-			applied[k], err = ensureBool(v)
+			applied[k], err = ensureBool(v, !fieldDef.DisableTrim)
 		case TypeString:
-			applied[k], err = ensureString(v)
+			applied[k], err = ensureString(v, !fieldDef.DisableTrim)
 		case TypeUUID:
-			applied[k], err = ensureUUID(v)
+			applied[k], err = ensureUUID(v, !fieldDef.DisableTrim)
 		default:
 			err = fmt.Errorf("Unknown field type %s when converting field %s", fieldDef.FieldType, k)
 		}
@@ -134,13 +136,16 @@ func ApplyDefinition(
 	return applied, errors, nil
 }
 
-func ensureBool(s interface{}) (interface{}, error) {
+func ensureBool(s interface{}, trimSpace bool) (interface{}, error) {
 	switch v := s.(type) {
 	case bool:
 		return s, nil
 	case string:
 		var b bool
 		str := s.(string)
+		if trimSpace {
+			str = strings.TrimSpace(str)
+		}
 		switch str {
 		case "true", "on":
 			b = true
@@ -156,18 +161,28 @@ func ensureBool(s interface{}) (interface{}, error) {
 	}
 }
 
-func ensureString(s interface{}) (interface{}, error) {
-	str := fmt.Sprintf("%v", s)
-	return str, nil
+func ensureString(s interface{}, trimSpace bool) (interface{}, error) {
+	switch v := s.(type) {
+	case string:
+		if trimSpace {
+			return strings.TrimSpace(fmt.Sprintf("%v", s)), nil
+		}
+		return fmt.Sprintf("%v", s), nil
+	default:
+		return nil, fmt.Errorf("Cannot convert type %T to string", v)
+
+	}
 }
 
-func ensureUUID(s interface{}) (interface{}, error) {
+func ensureUUID(s interface{}, trimSpace bool) (interface{}, error) {
 	switch v := s.(type) {
 	case uuid.UUID:
 		return s, nil
 	case string:
-		id, err := uuid.FromString(s.(string))
-		return id, err
+		if trimSpace {
+			return uuid.FromString(strings.TrimSpace(s.(string)))
+		}
+		return uuid.FromString(s.(string))
 	default:
 		return nil, fmt.Errorf("Cannot convert type %T to uuid.UUID", v)
 	}
