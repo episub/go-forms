@@ -27,10 +27,11 @@ var (
 type Validator func(interface{}) error
 
 type FieldDefinition struct {
-	Name        string
-	Group       string // Group is used when we want to break fields out into separate groups.  E.g., if creating or updating involves modifying multiple tables
-	FieldType   TypeName
-	Validations []Validator
+	Name          string
+	Group         string // Group is used when we want to break fields out into separate groups.  E.g., if creating or updating involves modifying multiple tables
+	FieldType     TypeName
+	Validations   []Validator
+	NotTrimSpaces bool
 }
 
 type Definition struct {
@@ -109,7 +110,7 @@ func ApplyDefinition(
 		case TypeBool:
 			applied[k], err = ensureBool(v)
 		case TypeString:
-			applied[k], err = ensureString(v)
+			applied[k], err = ensureString(v, !fieldDef.NotTrimSpaces)
 		case TypeUUID:
 			applied[k], err = ensureUUID(v)
 		default:
@@ -157,10 +158,13 @@ func ensureBool(s interface{}) (interface{}, error) {
 	}
 }
 
-func ensureString(s interface{}) (interface{}, error) {
+func ensureString(s interface{}, trimSpace bool) (interface{}, error) {
 	switch v := s.(type) {
 	case string:
-		return strings.TrimSpace(fmt.Sprintf("%v", s)), nil
+		if trimSpace {
+			return strings.TrimSpace(fmt.Sprintf("%v", s)), nil
+		}
+		return fmt.Sprintf("%v", s), nil
 	default:
 		return nil, fmt.Errorf("Cannot convert type %T to string", v)
 
