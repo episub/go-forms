@@ -112,31 +112,37 @@ func Test_ApplyDefinition(t *testing.T) {
 
 func Test_ensureBool(t *testing.T) {
 	t.Run("Success - Is String", func(t *testing.T) {
-		result, err := ensureBool("true")
+		result, err := ensureBool("true", true)
 		assert.Equal(t, true, result)
 		assert.NoError(t, err)
 	})
 
-	t.Run("Success - Is String with Whitespace", func(t *testing.T) {
-		result, err := ensureBool(" true  ")
+	t.Run("Success - Trim String with Whitespace", func(t *testing.T) {
+		result, err := ensureBool(" true  ", true)
 		assert.Equal(t, true, result)
 		assert.NoError(t, err)
 	})
 
 	t.Run("Success - Is Bool", func(t *testing.T) {
-		result, err := ensureBool(true)
+		result, err := ensureBool(true, true)
 		assert.Equal(t, true, result)
 		assert.NoError(t, err)
 	})
 
+	t.Run("Failure - No Trim String with Whitespace", func(t *testing.T) {
+		_, err := ensureBool(" true  ", false)
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "field must be true or false")
+	})
+
 	t.Run("Failure - Invalid String", func(t *testing.T) {
-		_, err := ensureBool("dunno")
+		_, err := ensureBool("dunno", true)
 		assert.ErrorContains(t, err, "field must be true or false")
 	})
 
 	// This case should technically never be reachable
 	t.Run("Failure - Invalid Interface", func(t *testing.T) {
-		_, err := ensureBool(dummyStruct{})
+		_, err := ensureBool(dummyStruct{}, true)
 		assert.ErrorContains(t, err, "Cannot convert type forms.dummyStruct to bool")
 	})
 }
@@ -165,26 +171,32 @@ func Test_ensureUUID(t *testing.T) {
 	dummyUUIDString := "123e4567-e89b-12d3-a456-426614174000"
 	// uuid should contain 32 hex chars, total of 36 chars, in the form 8-4-4-4-12
 	t.Run("Success - Is UUID", func(t *testing.T) {
-		result, err := ensureUUID(uuid.Must(uuid.FromString(dummyUUIDString)))
+		result, err := ensureUUID(uuid.Must(uuid.FromString(dummyUUIDString)), true)
 		assert.Equal(t, dummyUUIDString, result.(uuid.UUID).String())
 		assert.NoError(t, err)
 	})
 
 	t.Run("Success - Is String", func(t *testing.T) {
-		result, err := ensureUUID(dummyUUIDString)
+		result, err := ensureUUID(dummyUUIDString, true)
 		assert.Equal(t, dummyUUIDString, result.(uuid.UUID).String())
 		assert.NoError(t, err)
 	})
 
 	t.Run("Success - Is String With Whitespace", func(t *testing.T) {
-		result, err := ensureUUID(fmt.Sprintf("	 	%s	 ", dummyUUIDString))
+		result, err := ensureUUID(fmt.Sprintf("	 	%s	 ", dummyUUIDString), true)
 		assert.Equal(t, dummyUUIDString, result.(uuid.UUID).String())
 		assert.NoError(t, err)
 	})
 
+	t.Run("Failure - Not Trim String With Whitespace", func(t *testing.T) {
+		_, err := ensureUUID(fmt.Sprintf("	 	%s	 ", dummyUUIDString), false)
+		assert.Error(t, err)
+		assert.ErrorContains(t, err, "uuid: incorrect UUID format in string")
+	})
+
 	// This case should technically never be reachable
 	t.Run("Failure - Invalid Interface", func(t *testing.T) {
-		_, err := ensureUUID(dummyStruct{})
+		_, err := ensureUUID(dummyStruct{}, true)
 		assert.ErrorContains(t, err, "Cannot convert type forms.dummyStruct to uuid.UUID")
 	})
 }
