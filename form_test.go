@@ -27,10 +27,10 @@ var (
 				Validations: []Validator{},
 			},
 			"field4": {
-				Group:         "test-group", // leading tabspace but not trimmed
-				FieldType:     TypeString,
-				Validations:   []Validator{},
-				NotTrimSpaces: true,
+				Group:       "test-group", // leading tabspace but not trimmed
+				FieldType:   TypeString,
+				Validations: []Validator{},
+				DisableTrim: true,
 			},
 			"field5": {
 				Group:       "test-group", // regular valid UUID
