@@ -154,7 +154,7 @@ func ensureBool(s interface{}, trimSpace bool) (interface{}, error) {
 			b = false
 			return b, nil
 		default:
-			return nil, fmt.Errorf("field must be true or false")
+			return nil, fmt.Errorf("Must select a value")
 		}
 	default:
 		return nil, fmt.Errorf("Cannot convert type %T to bool", v)
