@@ -59,6 +59,14 @@ func ValidateRegex(rx *regexp.Regexp, message string) Validator {
 	}
 }
 
+func ValidateNil(v interface{}) error {
+	if v != nil {
+		return fmt.Errorf("Must be empty")
+	}
+
+	return nil
+}
+
 // ValidateEmail Checks that email address is valid
 func ValidateEmail() Validator {
 	return ValidateRegex(emailRx, "Email address is invalid")

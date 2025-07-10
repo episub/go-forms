@@ -11,9 +11,10 @@ import (
 type TypeName string
 
 var (
-	TypeBool   TypeName = "bool"
-	TypeString TypeName = "string"
-	TypeUUID   TypeName = "uuid"
+	TypeBool           TypeName = "bool"
+	TypeString         TypeName = "string"
+	TypeOptionalString TypeName = "optional_string"
+	TypeUUID           TypeName = "uuid"
 )
 
 type MissingErrorOption string
@@ -90,7 +91,7 @@ func ApplyDefinition(
 			msg := fmt.Sprintf("Using field %s not permitted", k)
 			switch options.ErrorOnPermission {
 			case MissingErrorWarn:
-				log.Warningf(msg)
+				log.Warning(msg)
 			case MissingErrorFail:
 				errors[k] = append(errors[k], fmt.Errorf(msg))
 			}
@@ -110,7 +111,9 @@ func ApplyDefinition(
 		case TypeBool:
 			applied[k], err = ensureBool(v, !fieldDef.DisableTrim)
 		case TypeString:
-			applied[k], err = ensureString(v, !fieldDef.DisableTrim)
+			applied[k], err = ensureString(v, !fieldDef.DisableTrim, false)
+		case TypeOptionalString:
+			applied[k], err = ensureString(v, !fieldDef.DisableTrim, true)
 		case TypeUUID:
 			applied[k], err = ensureUUID(v, !fieldDef.DisableTrim)
 		default:
@@ -161,17 +164,24 @@ func ensureBool(s interface{}, trimSpace bool) (interface{}, error) {
 	}
 }
 
-func ensureString(s interface{}, trimSpace bool) (interface{}, error) {
+func ensureString(s interface{}, trimSpace bool, optional bool) (interface{}, error) {
 	switch v := s.(type) {
 	case string:
 		if trimSpace {
-			return strings.TrimSpace(fmt.Sprintf("%v", s)), nil
+			v = strings.TrimSpace(fmt.Sprintf("%v", s))
 		}
-		return fmt.Sprintf("%v", s), nil
-	default:
-		return nil, fmt.Errorf("Cannot convert type %T to string", v)
-
+		if optional && len(v) == 0 {
+			return nil, nil
+		}
+		return v, nil
+	case nil:
+		if optional {
+			return nil, nil
+		} else {
+			fmt.Errorf("Cannot convert type %T to string", v)
+		}
 	}
+	return nil, fmt.Errorf("Cannot convert type %T to string", s)
 }
 
 func ensureUUID(s interface{}, trimSpace bool) (interface{}, error) {
